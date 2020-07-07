@@ -14,11 +14,13 @@ from panopto_oauth2 import PanoptoOAuth2
 # Top level folder is represented by zero GUID.
 # However, it is not the real folder and some API beahves differently than actual folder.
 GUID_TOPLEVEL = '00000000-0000-0000-0000-000000000000'
+
 # Define File Locations
 csvLocation = "folders.csv"
 resultsCsv = "results.csv"
 folderYear = "2020-21"
-panoptoSiteLocation = "https://york.cloud.panopto.eu"
+
+# Enables double checking if the move is correct, shows things down by adding more user checks.
 doubleVerify = False
 
 def parse_argument():
@@ -31,6 +33,7 @@ def parse_argument():
 
 def main():
     args = parse_argument()
+    panoptoSiteLocation = "https://" + args.server
 
     if args.skip_verify:
         # This line is needed to suppress annoying warning message.
@@ -51,11 +54,13 @@ def main():
 
     print("What Subject is being processed?")
     subjectFolder = search_folder(folders)
+    print("---------")
+    print("Displaying Folders and Selecting the " + folderYear + " Folder")
     # Display Subfolders
     get_and_display_sub_folders(folders, subjectFolder)
-
     # Select correct folder
     subFolder = find_year_folder(folders,subjectFolder,folderYear)
+    print("---------")
 
     with open(resultsCsv, mode='w') as resultsCsvfile:
         fieldnames = ['oldName', 'newName', 'success','urlLink']
@@ -68,13 +73,16 @@ def main():
                 # Find and Move Folder
                 newFolderName = row['newName']
 
-                print("processing file")
-                print(newFolderName)
-                print("searching for: " + row['oldName'])
+                print("Module Code: " + newFolderName)
+                print("Searching for: " + row['oldName'])
                 oldFolderName = search_folder_with_query(folders, row['oldName'])
 
                 success = "N"
-                urlLink = 'null'
+                urlLink = 'Folder Not Found'
+
+                if(row['oldName'] == "null-shared"):
+                    urlLink = 'TO CHECK - SHARED'
+
 
                 if(str(oldFolderName) != "None"):
                     if(doubleVerify == True):
@@ -194,7 +202,7 @@ def search_folder(folders):
 
     for index in range(len(entries)):
         print('  [{0}]: {1}'.format(index, entries[index]['Name']))
-    selection = input('Enter the number (or just enter to stay current): ')
+    selection = input('Enter the number: ')
     
     new_folder_id = None
     try:
@@ -216,7 +224,7 @@ def search_folder_with_query(folders, query):
 
     for index in range(len(entries)):
         print('  [{0}]: {1}'.format(index, entries[index]['Name']))
-    selection = input('Enter the number (or just enter to stay current): ')
+    selection = input('Enter the number: ')
 
     new_folder_id = None
     try:
@@ -259,7 +267,7 @@ def get_old_folder(folders):
 
     for index in range(len(entries)):
         print('  [{0}]: {1}'.format(index, entries[index]['Name']))
-    selection = input('Enter the number (or just enter to stay current): ')
+    selection = input('Enter the number: ')
 
     new_folder_id = None
     try:

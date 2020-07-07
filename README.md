@@ -19,3 +19,12 @@ Type the following command.
 python folderProvisioning.py --server [Panopto server name] --client-id [Client ID] --client-secret [Client Secret]
 ```
 This starts command line interaction of folder management, starting from the top level folder.
+
+## CSV Folders
+```
+oldName,newName
+Y20xx-00xxxx,ABC00001C-A-20XX
+Y20xx-00xxxx,ABC00002C-A-20XX
+null-shared,null
+```
+For shared modules use ```null-shared,null``` for the role, this will ensure that it is not processed to allow manual processing.
