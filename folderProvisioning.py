@@ -1,5 +1,4 @@
 #!python3
-#NB IGNORED
 import sys
 import argparse
 import requests
@@ -15,6 +14,12 @@ from panopto_oauth2 import PanoptoOAuth2
 # Top level folder is represented by zero GUID.
 # However, it is not the real folder and some API beahves differently than actual folder.
 GUID_TOPLEVEL = '00000000-0000-0000-0000-000000000000'
+# Define File Locations
+csvLocation = "folders.csv"
+resultsCsv = "results.csv"
+folderYear = "2020-21"
+panoptoSiteLocation = "https://york.cloud.panopto.eu"
+doubleVerify = False
 
 def parse_argument():
     parser = argparse.ArgumentParser(description='Sample of Folders API')
@@ -48,9 +53,9 @@ def main():
     subjectFolder = search_folder(folders)
     # Display Subfolders
     get_and_display_sub_folders(folders, subjectFolder)
-    subFolder = find_year_folder(folders,subjectFolder,"2020-21")
-    csvLocation = "folders.csv"
-    resultsCsv = "results.csv"
+
+    # Select correct folder
+    subFolder = find_year_folder(folders,subjectFolder,folderYear)
 
     with open(resultsCsv, mode='w') as resultsCsvfile:
         fieldnames = ['oldName', 'newName', 'success','urlLink']
@@ -68,20 +73,24 @@ def main():
                 print("searching for: " + row['oldName'])
                 oldFolderName = search_folder_with_query(folders, row['oldName'])
 
-                print("---------")
                 success = "N"
                 urlLink = 'null'
 
                 if(str(oldFolderName) != "None"):
-                    verify = 'y'
+                    if(doubleVerify == True):
+                        verify = input ("Are you sure? (enter 'y' to continue or 'n' to abort)")
+                    else:
+                        verify = 'y'
 
-                    if(verify.lower() != 'n'):
+                    if(verify.lower() == 'y'):
                         folders.update_folder_name(oldFolderName,newFolderName)
-                        folders.update_folder_parent(oldFolderName,subFolder, "2020-21")
+                        folders.update_folder_parent(oldFolderName,subFolder, folderYear)
                         success = "Y"
-                        urlLink = "https://york.cloud.panopto.eu/Panopto/Pages/Sessions/List.aspx#folderID=" + oldFolderName
+                        urlLink = panoptoSiteLocation + "/Panopto/Pages/Sessions/List.aspx#folderID=" + oldFolderName
 
                 csv_writer.writerow({'oldName':str(row['oldName']), 'newName':str(row['newName']), 'success':success, 'urlLink':urlLink })
+                print("---------")
+
 
 
     
