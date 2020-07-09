@@ -18,7 +18,6 @@ GUID_TOPLEVEL = '00000000-0000-0000-0000-000000000000'
 # Define File Locations
 csvLocation = "folders.csv"
 resultsCsv = "results.csv"
-folderYear = "2020-21"
 
 # Enables double checking if the move is correct, shows things down by adding more user checks.
 doubleVerify = False
@@ -55,11 +54,18 @@ def main():
     print("What Subject is being processed?")
     subjectFolder = search_folder(folders)
     print("---------")
-    print("Displaying Folders and Selecting the " + folderYear + " Folder")
-    # Display Subfolders
-    get_and_display_sub_folders(folders, subjectFolder)
+
+    # Display and select Subfolders
+    subFolder = get_and_select_sub_folders(folders, subjectFolder)
+    print("You have selected the subfolder " + subFolder[1])
+
+    # Check if selected folder is correct
+    doubleCheck = input("Please confirm if correct: (y) ")
+    if doubleCheck.lower() != 'y':
+        exit()
+
     # Select correct folder
-    subFolder = find_year_folder(folders,subjectFolder,folderYear)
+    # subFolder = find_year_folder(folders,subjectFolder,folderYear)
     print("---------")
 
     with open(resultsCsv, mode='w') as resultsCsvfile:
@@ -91,9 +97,27 @@ def main():
                         verify = 'y'
 
                     if(verify.lower() == 'y'):
-                        folders.update_folder_name(oldFolderName,newFolderName)
-                        folders.update_folder_parent(oldFolderName,subFolder, folderYear)
-                        success = "Y"
+                        moveSuccess = False
+                        nameSuccess = folders.update_folder_name(oldFolderName,newFolderName)
+
+                        if nameSuccess:
+                            moveSuccess = folders.update_folder_parent(oldFolderName,subFolder[0], subFolder[1])
+
+                        if nameSuccess and moveSuccess == False:
+                            print("Could not move due to conflict however renamed sucessfully!")
+                            success = "Renamed but did not Move due to conflict"
+                            renameSuccess = rename_and_move(folders, oldFolderName, newFolderName, subFolder)
+
+                        if nameSuccess == False and moveSuccess:
+                            print("Could not rename but moved sucessfully")
+                            success = "Moved but did not rename"
+
+                        if nameSuccess == False and moveSuccess == False:
+                            print("Could not rename or move!")
+                            success = "Failed please try manually"
+
+                        if nameSuccess and moveSuccess:
+                            success = "Y"
                         urlLink = panoptoSiteLocation + "/Panopto/Pages/Sessions/List.aspx#folderID=" + oldFolderName
 
                 csv_writer.writerow({'oldName':str(row['oldName']), 'newName':str(row['newName']), 'success':success, 'urlLink':urlLink })
@@ -139,6 +163,31 @@ def get_and_display_sub_folders(folders, current_folder_id):
         key += 1
     
     return result
+
+def get_and_select_sub_folders(folders, current_folder_id):
+    print()
+    print('Sub Folders:')
+    children = folders.get_children(current_folder_id)
+
+    # returning object is the dictionary, key (integer) and folder's ID (UUID)
+    result = {}
+    name = {}
+    key = 0
+    for entry in children:
+        result[key] = entry['Id']
+        name[key] = entry['Name']
+        print('  [{0}]: {1}'.format(key, entry['Name']))
+        key += 1
+
+    selection = input('Enter the folder number: ')
+
+    try:
+        key = int(selection)
+        if result[key]:
+            return result[key], name[key]
+    except:
+        pass  # selection is not a number, fall through
+
 
 def process_selection(folders, current_folder, sub_folders):
     if current_folder is None:
@@ -278,6 +327,16 @@ def get_old_folder(folders):
         pass
 
     return new_folder_id
+
+def rename_and_move(folders, oldFolderName, newFolderName, subFolder):
+    rename = input("Would you like to rename and try again? (y) ")
+    if rename.lower == 'y':
+        print("The conflicting name is: " + newFolderName)
+        updatedFolderName = input("Please enter new name EXACTLY as you want to call the folder: ")
+        nameSuccess = folders.update_folder_name(newFolderName, updatedFolderName)
+        moveSuccess = folders.update_folder_parent(oldFolderName, subFolder[0], subFolder[1])
+        return True
+
 
 if __name__ == '__main__':
     main()
