@@ -77,7 +77,6 @@ def main():
         exit()
 
     # Select correct folder
-    # subFolder = find_year_folder(folders,subjectFolder,folderYear)
     print("---------")
 
     with open(resultsCsv, mode='w') as resultsCsvfile:
