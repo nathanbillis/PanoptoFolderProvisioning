@@ -50,17 +50,29 @@ def main():
     folders = PanoptoFolders(args.server, not args.skip_verify, oauth2)
     
     current_folder_id = GUID_TOPLEVEL
+    print("\n-------------")
 
-    print("What Subject is being processed?")
-    subjectFolder = search_folder(folders)
-    print("---------")
+    print("\nWelcome to the Panopto Folder Renaming/Moving Tool folders to be processed should be in " + csvLocation +
+          " and the results will be stored in " + resultsCsv)
+    print("You are logged into " + panoptoSiteLocation)
+
+    print("\n-------------")
+    print("What Subject is being processed? (eg. Biology)")
+    newSubjectFolder = search_folder(folders)
+    subjectFolder = newSubjectFolder[0]
+    print("-------------")
 
     # Display and select Subfolders
     subFolder = get_and_select_sub_folders(folders, subjectFolder)
-    print("You have selected the subfolder " + subFolder[1])
+    print("-------------")
 
     # Check if selected folder is correct
-    doubleCheck = input("Please confirm if correct: (y) ")
+    print("Once confirmed the script will start iterating through the " + csvLocation
+          + " file and rename/move the folders")
+    print("\nYou have selected the subject: " + newSubjectFolder[1] +
+          "\nYou have selected the subfolder: " + subFolder[1])
+    print("\n-------------")
+    doubleCheck = input("Please confirm if the above settings are correct: (y) ")
     if doubleCheck.lower() != 'y':
         exit()
 
@@ -107,14 +119,14 @@ def main():
                             print("Could not move due to conflict however renamed sucessfully!")
                             success = "Renamed but did not Move due to conflict"
                             renameSuccess = rename_and_move(folders, oldFolderName, newFolderName, subFolder)
-
-                        if nameSuccess == False and moveSuccess:
-                            print("Could not rename but moved sucessfully")
-                            success = "Moved but did not rename"
+                            if renameSuccess:
+                                print("Renamed and Moved Sucessfully!")
+                                success = "Y - modified name"
 
                         if nameSuccess == False and moveSuccess == False:
-                            print("Could not rename or move!")
-                            success = "Failed please try manually"
+                            print("Could not rename or move! - This is due to the folder name already being "
+                                  "present in the parent directory")
+                            success = "N - Failed please try manually"
 
                         if nameSuccess and moveSuccess:
                             success = "Y"
@@ -165,7 +177,6 @@ def get_and_display_sub_folders(folders, current_folder_id):
     return result
 
 def get_and_select_sub_folders(folders, current_folder_id):
-    print()
     print('Sub Folders:')
     children = folders.get_children(current_folder_id)
 
@@ -258,10 +269,11 @@ def search_folder(folders):
         index = int(selection)
         if 0 <= index < len(entries):
             new_folder_id = entries[index]['Id']
+            new_folder_name = entries[index]['Name']
     except:
         pass
 
-    return new_folder_id
+    return new_folder_id, new_folder_name
 
 
 def search_folder_with_query(folders, query):
@@ -330,12 +342,22 @@ def get_old_folder(folders):
 
 def rename_and_move(folders, oldFolderName, newFolderName, subFolder):
     rename = input("Would you like to rename and try again? (y) ")
-    if rename.lower == 'y':
+    if rename.lower() == 'y':
         print("The conflicting name is: " + newFolderName)
         updatedFolderName = input("Please enter new name EXACTLY as you want to call the folder: ")
-        nameSuccess = folders.update_folder_name(newFolderName, updatedFolderName)
+        nameSuccess = folders.update_folder_name(oldFolderName, updatedFolderName)
         moveSuccess = folders.update_folder_parent(oldFolderName, subFolder[0], subFolder[1])
-        return True
+
+        if moveSuccess == False or nameSuccess == False:
+            print("Error conflicting name: " + updatedFolderName)
+            updatedFolderName = input("Please enter new name EXACTLY as you want to call the folder: ")
+            nameSuccess = folders.update_folder_name(oldFolderName, updatedFolderName)
+            moveSuccess = folders.update_folder_parent(oldFolderName, subFolder[0], subFolder[1])
+
+        if nameSuccess and moveSuccess:
+            return True
+        else:
+            return False
 
 
 if __name__ == '__main__':
